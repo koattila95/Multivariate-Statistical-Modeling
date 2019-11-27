@@ -43,7 +43,7 @@ dfok$éves.GDP <- gsub(".", "", dfok$éves.GDP, fixed = TRUE)
 str(dfok)
 dfok$éves.GDP <- as.numeric(dfok$éves.GDP)
 
-############# mintavételezés az országokból 20 elemet############# 
+############# mintavételezés az országokból 20 elemet ############# 
 
 dfmv <- dfok[sample(nrow(dfok), 20), ]
 str(dfmv)
