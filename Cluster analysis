@@ -43,6 +43,13 @@ dfok$éves.GDP <- gsub(".", "", dfok$éves.GDP, fixed = TRUE)
 str(dfok)
 dfok$éves.GDP <- as.numeric(dfok$éves.GDP)
 
+############# mintavételezés az országokból 20 elemet############# 
+
+dfmv <- dfok[sample(nrow(dfok), 20), ]
+str(dfmv)
+dfmvscale <- scale(dfmv)
+summary(dfmvscale)
+
 
 ##### 2014-es adatok alapján cluster, melyik országok csoportosulnak egyutt ongyilkosságok tukrében #####
 
@@ -89,3 +96,68 @@ rect.hclust(h, k=6, border = "red")
 (cn <- cutree(h, k = 4))
 
 table(cn)
+# Egyes klaszterek értelmezése: ! Nem a standardizáltakon, hogy direkt módon lehessen értelmezni!
+
+round(aggregate(dfok, FUN = mean, by = list(cn)), 1)
+# A klaszterezés lényege: utólagos rétegzés:)
+#Csoportonkénti szórás:
+round(aggregate(dfok, FUN = sd, by = list(cn)), 1)
+#totál szórás:
+round(sapply(dfok, sd), 1)
+#Csoportok szórása egymáshoz képest:
+round(apply(aggregate(dfok, FUN = mean, by = list(cn)), 2, sd), 1)
+
+# változó erősség: F értéket kell nézni a standardizáltra!
+summary(aov(dfscale$éves.HDI ~ cn))
+
+
+# K-Means Cluster Analysis
+fit <- kmeans(dfscale, 4) # 4 cluster solution
+# get cluster means
+aggregate(dfscale,by=list(fit$cluster),FUN=mean)
+aggregate(dfscale,by=list(fit$cluster),FUN=mean)
+
+# append cluster assignment
+mydata <- data.frame(dfscale, fit$cluster)
+
+# Ward Hierarchical Clustering with Bootstrapped p values:
+# Klaszter stabilitás
+library(pvclust)
+fit <- pvclust(t(mydata), method.hclust="ward", method.dist="euclidean") # vigyázz: fordított adatszerkezetet vár!!
+#The green number is the Bootstrap Probability * 100 (BP) and has the most straightforward interpretation
+#The red number is the Approximately Unbiased p-value * 100 (AU) and is a corrected version of BP to limit bias
+plot(fit) # dendogram with p values
+# add rectangles around groups highly supported by the data
+pvrect(fit, alpha=.95)
+#For a cluster with AU p-value > 0.95, the hypothesis that "the cluster does not exist" is rejected with significance level 0.05; roughly speaking, we can think that these highlighted clusters does not only "seem to exist" caused by sampling error, but may stably be observed if we increase the number of observation.
+
+
+####### a mintavételezettre értendöek a lentebbi adatok (dfmvscale) ############
+
+
+# K-Means Clustering with 4 clusters
+fit <- kmeans(dfmvscale, 4)
+
+# Plotting Cluster Solutions
+
+# Cluster Plot against 1st 2 principal components
+
+# vary parameters for most readable graph
+library(cluster)
+clusplot(dfmvscale, fit$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+
+# comparing 2 cluster solutions:
+fit1 <- kmeans(mydata, 4)
+table(fit1$cluster, cn)
+
+#library(fpc)
+#cluster.stats(d, fit1$cluster, cn)
+
+
+# Model Based Clustering
+#https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5096736/
+library(mclust)
+fit <- Mclust(mydata)
+plot(fit) # plot results
+summary(fit) # display the best model
