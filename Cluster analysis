@@ -1,0 +1,91 @@
+# Cluster analysis about suicide datas of 2014 in the world.
+## source: https://www.kaggle.com/russellyates88/suicide-rates-overview-1985-to-2016
+
+getwd()
+setwd("C:/dokumentumok/MA egyetem/többváltozós statisztikai analízis gyak/klaszter hf")
+df2 <- read.csv("C:/dokumentumok/MA egyetem/többváltozós statisztikai analízis gyak/klaszter hf/master.csv"
+                ,header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE, encoding="UTF-8", #az adatfile beolvasásával kezdtem
+                check.names = FALSE, stringsAsFactors = FALSE)
+head(df2)
+
+colnames(df2)
+newhead <- enc2native(colnames(df2))
+newhead <- gsub("<[^>]+>", "", newhead) 
+colnames(df2) <- newhead
+
+colnames(df2)[7]  <- "suicides.100k.pop"
+colnames(df2[7])
+colnames(df2)[8]  <- "country.year"      
+colnames(df2[8])
+colnames(df2)[9] <- "HDI.for.year"
+colnames(df2[9])
+colnames(df2)[10] <- "GDP.for.year"
+colnames(df2)[11] <- "GDP.per.capita"
+colnames(df2)
+library(plyr)
+
+df2.2 <- ddply(df2,.(country.year), summarise,ongyilkosok.szama=sum(suicides_no), 
+               lakossag.szama=sum(population), év=unique(year), ország=unique(country), 
+               éves.HDI=unique(HDI.for.year), éves.GDP=unique(GDP.for.year), egy.fore.eso.GDP=unique(GDP.per.capita))
+head(df2.2)
+
+df3.2 <- subset(df2.2, év=="2014")
+tail(df3.2)
+dfok <- na.omit(df3.2)
+colnames(dfok)
+rownames(dfok) <- dfok[,5]
+dfok[,5] <- NULL
+dfok[,1] <- NULL
+dfok[,3] <- NULL
+head(dfok)
+dfok$éves.GDP <- gsub(",", "", dfok$éves.GDP, fixed = TRUE)
+dfok$éves.GDP <- gsub(".", "", dfok$éves.GDP, fixed = TRUE)
+str(dfok)
+dfok$éves.GDP <- as.numeric(dfok$éves.GDP)
+
+
+##### 2014-es adatok alapján cluster, melyik országok csoportosulnak egyutt ongyilkosságok tukrében #####
+
+
+
+summary(dfok)
+dfscale <- scale(dfok)
+summary(dfscale)
+
+# Determine number of clusters
+wss <- (nrow(dfscale)-1)*sum(apply(dfscale,2,var))
+for (i in 2:15) {
+  wss[i] <- sum(kmeans(dfscale, centers=i)$withinss)
+}
+plot(1:15, wss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares")
+
+
+library(NbClust)
+
+NbClust(dfscale, method = 'complete', index = 'dindex')
+
+#vs. eredeti adat: STANDARDIZÁLÁS FONTOSSÁGA!
+
+NbClust(mtcars, method = 'complete', index = 'dindex')
+
+NbClust(mydata, method = 'complete', index = 'all')$Best.nc[1,]
+
+#Ha van elég megfigyelés:
+NbClust(dfscale[, -5], method = 'complete', index = 'all')$Best.nc[1,]
+
+# Hierarchikus:
+d <- dist(dfscale)
+h <- hclust(d)
+h
+
+par(mfrow=c(1,1))
+
+plot(h)
+
+plot(h)
+rect.hclust(h, k=6, border = "red")
+
+# menteni:
+(cn <- cutree(h, k = 4))
+
+table(cn)
