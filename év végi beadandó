@@ -1,3 +1,17 @@
+################# packages ###################
+library(MVN)
+library(psych)
+library(lmtest)
+library(plyr)
+library(Hmisc)
+library(foreign)
+library(RcmdrMisc)
+library(gsubfn)
+library(magrittr)
+library(GGally)
+library(corpcor)
+
+
 getwd()
 setwd("C:/dokumentumok/MA egyetem/többváltozós statisztikai analízis gyak/év végi nagy beadandó")
 
@@ -13,17 +27,22 @@ str(essmg)
 essnomg <- ess[ess$brncntr == "1", ]
 essnomg <- essnomg[sample(nrow(essnomg), 304), ]
 
+#összerakom a két adattáblát a kulfoldieket és a sampleezett németeket, hogy azonos számban képviseljék magukat 
+esssample <- rbind(essmg, essnomg)
+str(esssample)
+
 #################################### eloszor is létrehoztuk a fokomponenseket a késöbbi elemzésekhez (nem kellett végül, mert nem tudtam beilleszteni) #####################################################
 ##### pca ######
 ############### faktor = fokomponens itt ########################
 
+detrst <- c("trstprl", "trstlgl", "trstplc", "trstplt", "trstprt", "trstep", "trstun", "stflife", "stfeco", "stfgov", 
+            "stfdem", "stfedu", "stfhlth", "imbgeco", "imueclt", "imwbcnt")
+dfeall <- na.omit((esssample[, detrst]))
+
 str(dfeall)
-
-library(MVN)
-
 KMO(dfeall)
 ################################ osszre pca - nem jó ##########################################################################x
-library(psych)
+
 #screeplot azért, hogy segítsen donteni, hány fokomponensu modellt futassunk
 VSS.scree(cor(dfeall)) 
 scree(cor(dfeall))
@@ -45,6 +64,7 @@ cor(dfeall, pc$x[, 1:5])
 varimax(pc$rotation[, 1:5]) #mivel van olyan változo, ami mindkét tengelyre jó lehet, forgatjuk a tengelyt, hogy lehetoleg egy változó csak egy tengelyhez kapcsolodjon
 # egyben nem jól értelmezhetőek a pca-k 
 ################################################ innentől jó ###################################################################
+
 
 # pca kulon, kulon 
 ## pca a a társdalmi intézmények bizalmára 
@@ -75,19 +95,19 @@ cor(dfeall1)
 
 ## pca a elégedettségre 
 
-detrst1 <- c("stflife", "stfeco", "stfgov", 
+detrst2 <- c("stflife", "stfeco", "stfgov", 
              "stfdem", "stfedu", "stfhlth")
 
-dfeall1 <- na.omit((esssample[, detrst1]))
-KMO(dfeall1)
-VSS.scree(cor(dfeall1)) 
-scree(cor(dfeall1))
-fa.parallel(dfeall1)
+dfeall2 <- na.omit((esssample[, detrst2]))
+KMO(dfeall2)
+VSS.scree(cor(dfeall2)) 
+scree(cor(dfeall2))
+fa.parallel(dfeall2)
 
-prcomp(dfeall1, scale = TRUE) #elején a fokomponensek szorásai
-summary(prcomp(dfeall1, scale = TRUE))
+prcomp(dfeall2, scale = TRUE) #elején a fokomponensek szorásai
+summary(prcomp(dfeall2, scale = TRUE))
 
-pc2 <- prcomp(dfeall1, scale = TRUE)
+pc2 <- prcomp(dfeall2, scale = TRUE)
 biplot(pc2, cex = c(0.8, 1.2))
 varimax(pc2$rotation[, 1:2])
 # első faktorban állami, politikai intézményekkel való elégedettség dimenziót találjuk 
@@ -95,52 +115,20 @@ varimax(pc2$rotation[, 1:2])
 
 ## pca a migrációra 
 
-detrst1 <- c("imbgeco", "imueclt", "imwbcnt")
+detrst3 <- c("imbgeco", "imueclt", "imwbcnt")
 
-dfeall2 <- na.omit((esssample[, detrst1]))
-KMO(dfeall2)
-VSS.scree(cor(dfeall2)) 
-scree(cor(dfeall2))
-fa.parallel(dfeall2)
+dfeall3 <- na.omit((esssample[, detrst3]))
+KMO(dfeall3)
+VSS.scree(cor(dfeall3)) 
+scree(cor(dfeall3))
+fa.parallel(dfeall3)
 
 
 ###########################################################################################################
 ############################### logisztikus regresszió a migráció és az elszenvedett bunozesre nézve ######
 ###########################################################################################################
 
-library(catdata)
-library(vcdExtra)
-library(lmtest)
-library(BaylorEdPsych)
-library(ggplot2)
-library(MASS)
-library(broom)
-library(data.table)
-library(plyr)
-library(Hmisc)
-
-#összerakom a két adattáblát a kulfoldieket és a sampleezett németeket, hogy azonos számban képviseljék magukat 
-
-# vajon a kulfoldieken nagyobb arányban követnek el buncselekményt, vagy fordítva? 
-binom.model.0 <- glm(crmvct ~ brncntr, data = esssample, family = binomial)
-summary(binom.model.0)
-
-# Ha külföldi, minimálisan kisebb az esély, hogy bűncselekmény áldozata lesz 
-
-exp(cbind(OR = coef(binom.model.0), confint(binom.model.0))) #esélyhányados, a referenciaváltozohoz képest (jelen esetben a fehérekhez képest) mekkora az esélye hogy haálbüntit kap 
-# or az esélyhányados
-
-
-# a bizalmi faktoroktol fugg 
-# áldozata lett ebuncselekménynek, fugg e bizalmi 
-str(essmg)
-str(essnomg)
-
-# két egyenlo elemszámmal rendelkezo kulfoldi és nem kulfoldiekkel rendelkezeo adatbázist egyberakom 
-esssample <- rbind(essmg, essnomg)
-str(esssample)
-
-
+############# adatbázisok előkészítése #############
 # változók átalakítása a logisztikus regressziohoz 
 # 1 - yes, 0 - no 
 esssample$crmvct # a fuggo változóm 
@@ -154,11 +142,10 @@ esssample$crmvct <- as.numeric(esssample$crmvct)
 esssample$brncntr #első független  változóm, pl #0 a kulfoldi, 1 a nem kulfoldi (referenciaérték)
 #0 a kulfoldi, 1 a nem kulfoldi (referenciaérték)
 esssample$brncntr %<>%
-   gsub(1, 1, .) %>% 
-   gsub(2, 0, .)
+  gsub(1, 1, .) %>% 
+  gsub(2, 0, .)
 esssample$brncntr <- as.numeric(esssample$brncntr)
 
-library(fastDummies)
 
 esssample$aesfdrk
 
@@ -173,10 +160,21 @@ esssample$aesfdrk %<>%
   gsub(4, 0, .)
 esssample$aesfdrk <- as.numeric(esssample$aesfdrk)
 
+
+
+
+# vajon a kulfoldieken nagyobb arányban követnek el buncselekményt, vagy fordítva? 
+binom.model.0 <- glm(crmvct ~ brncntr, data = esssample, family = binomial)
+summary(binom.model.0)
+
+# Ha külföldi, minimálisan kisebb az esély, hogy bűncselekmény áldozata lesz 
+exp(cbind(OR = coef(binom.model.0), confint(binom.model.0))) #esélyhányados, a referenciaváltozohoz képest (jelen esetben a nem kulfoldiekhez képest) mekkora az esélye hogy buncselekmény áldozata lesz
+# or az esélyhányados
+
 # updatelt logisztikus regresszió 
 
 binom.model.1 <- update(binom.model.0, .~.+aesfdrk) 
-summary(binom.model.1) # AIC épphogy 2 - vel kulonbozik 
+summary(binom.model.1) # AIC < 2 - vel kulonbozik, nem ad hozzá plusz információt az új változó 
 exp(cbind(OR = coef(binom.model.1), confint(binom.model.1))) 
 
 prop.table(table(factor(esssample$aesfdrk, labels = c("Unsafe=0", "Safe=1")), factor(esssample$brncntr, labels = c("kulfoldi=0", "nem_kulfoldi=1"))), 1)
@@ -212,7 +210,7 @@ ess$grspnum2[ess$grspnum2 == 999999999] <- NA
 
 ## teszt, le kell vágni a kiugro értékeket 
 # 1500 euro a havi minimálbér, igy csak a feletti értékeket és a 16000 euro feletti osszegeket is kidobtam spss-ben 
-
+# teszt szerint jövedelem nem hat a a befogadókészségre 
 teszt <- lm(imwbcnt ~ grspnum2, data = ess)
 summary(teszt)
 plot(imwbcnt ~ grspnum2, data = ess, cex.lab = 1.5)
@@ -221,4 +219,16 @@ abline(teszt, col = "red", lwd = 2.5)
 linmodel.1 <- update(linmodel.0, . ~ . + grspnum2) #de ide bele lehetne illeszteni az elozo metodussal is és plusz hozzáadjuk a másik fuggetlen változót 
 summary(linmodel.1)
 # r négyzet nőtt, de még mindig nem jó magyarázó erő. 
+# mivel jövedelem nem szignifikáns, másik magyarázó ero kell a befogadókészség magyarázásához, plusz jövedelm és tanult évek korrelálhatnak, így nem érvényes a modellbe 
+teszt2 <- lm(grspnum2 ~ eduyrs, data = ess)
+summary(teszt2) 
+
+par(mfrow=c(2,2))
+plot(linmodel.1)
+
+xa <- data.frame(ess$imwbcnt, ess$grspnum2, ess$eduyrs)
+str(xa)
+xa <- xa[complete.cases(xa), ]
+ggpairs(linmodel.1) #korrelálnak, multikollinearitás a független változókban 
+cor2pcor(cov(xa)) # igen multicollinearity. 
 
